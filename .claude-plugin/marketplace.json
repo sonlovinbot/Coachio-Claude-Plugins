@@ -11,7 +11,7 @@
       "name": "coachio-system",
       "source": "./plugins/coachio-system",
       "description": "Configure Coachio sales funnels by chatting with Claude Code through the Funnel Config MCP server (landing/checkout/success pages, emails, broadcasts, leads, discounts, media, analytics).",
-      "version": "0.1.0"
+      "version": "0.2.0"
     }
   ]
 }
