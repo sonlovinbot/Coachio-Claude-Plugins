@@ -32,7 +32,7 @@ command — with the secret pre-filled — from the **System Admin → MCP** pag
 Coachio dashboard, or run:
 
 ```bash
-claude mcp add --transport http funnel-config \
+claude mcp add --transport http coachio-system \
   "https://<your-api-host>/api/v1/mcp/" \
   --header "X-Admin-MCP-Secret: <YOUR_ADMIN_MCP_SECRET>"
 ```
@@ -43,8 +43,8 @@ claude mcp add --transport http funnel-config \
 ### 3. Verify
 
 ```bash
-/mcp                # confirms funnel-config is connected and lists the tools
-claude mcp list     # funnel-config: Connected
+/mcp                # confirms coachio-system is connected and lists the tools
+claude mcp list     # coachio-system: Connected
 ```
 
 Then try a prompt such as *"list funnels"*.

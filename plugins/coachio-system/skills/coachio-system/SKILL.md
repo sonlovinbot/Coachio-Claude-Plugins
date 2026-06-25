@@ -39,7 +39,7 @@ header — reuses the backend's `N8N_ADMIN_API_SECRET`:
 ```json
 {
   "mcpServers": {
-    "funnel-config": {
+    "coachio-system": {
       "type": "http",
       "url": "https://<api-host>/api/v1/mcp/",
       "headers": { "X-Admin-MCP-Secret": "<N8N_ADMIN_API_SECRET value>" }
