@@ -2,7 +2,7 @@
 
 A [Claude Code](https://code.claude.com) plugin marketplace for Coachio.
 
-It currently ships one plugin, **`funnel-config`**, which installs the skill that
+It currently ships one plugin, **`coachio-system`**, which installs the skill that
 teaches Claude Code how to drive the **Coachio Funnel Config MCP** server — so admins
 can configure sales funnels by chatting with the agent instead of clicking through the
 dashboard (landing / checkout / success pages, emails, email campaigns, leads,
@@ -18,7 +18,7 @@ discounts, the media library and analytics).
 
 ```bash
 /plugin marketplace add sonlovinbot/Coachio-Claude-Plugins
-/plugin install funnel-config@coachio
+/plugin install coachio-system@coachio
 ```
 
 `/plugin marketplace add` also accepts the full git URL:
@@ -52,7 +52,7 @@ Then try a prompt such as *"list funnels"*.
 ## What's in the plugin
 
 ```
-plugins/funnel-config/
+plugins/coachio-system/
 ├── .claude-plugin/plugin.json
 └── skills/coachio-system/
     ├── SKILL.md                 # how the agent uses the tools (scope + safety policy)
