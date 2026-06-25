@@ -21,10 +21,11 @@ admin web UI, so changes are real and immediately live where applicable.
 
 ## Scope
 
-This skill handles **funnel configuration only**: funnels, landing sections, SEO,
-checkout/success config, variables, email templates, broadcast campaigns, discounts
-(incl. scope + defaults), media library, capture token, and **read-only** leads /
-analytics / orders, plus unpublished landing preview.
+This skill handles **funnel + product configuration**: products (CRUD), funnels, landing
+sections, SEO, checkout/success config, variables, email templates, broadcast campaigns,
+discounts (incl. scope + defaults), media library, capture token, **lucky-draw events**
+(events, prizes, participants, live spin/winners, registration token), and **read-only**
+leads / analytics / orders, plus unpublished landing preview.
 
 It does **NOT** handle: payment processing, course/lesson/quiz authoring, user accounts,
 infrastructure, or anything outside the funnel admin domain. If asked, say so and stop —
