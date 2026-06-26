@@ -71,8 +71,9 @@ Read tools and content-config tools run freely. Output mirrors the admin REST sc
 - `get_lucky_token(event_id)`, `rotate_lucky_token(event_id, confirm)` ⚠ — public registration token.
 - `list_lucky_prizes(event_id)`, `create_lucky_prize(event_id, name, quantity?, sort_order?)`, `update_lucky_prize(event_id, prize_id, …)`, `delete_lucky_prize(event_id, prize_id, confirm)` ⚠.
 - `list_lucky_participants(event_id)`, `add_lucky_participant(event_id, display_name, phone?, answers?)`, `remove_lucky_participant(event_id, participant_id, confirm)` ⚠.
-- `spin_lucky_prize(event_id, prize_id, confirm)` ⚠ — live draw; records a winner, not reversible.
-- `list_lucky_winners(event_id)`.
+- `spin_lucky_prize(event_id, prize_id, confirm)` ⚠ — live draw; returns winner (id, display_name, phone, email, prize, spin_order). Undo with `discard_lucky_winner`.
+- `list_lucky_winners(event_id)` — winners incl. id, phone, email (derived from participant; empty when not collected).
+- `discard_lucky_winner(event_id, winner_id, confirm)` ⚠ — discard a winner (e.g. absent), removes the participant and frees the prize to redraw.
 
 ## Preview
 - `get_landing_preview(funnel_id)` — returns the admin `preview_url` (open in browser) and a
