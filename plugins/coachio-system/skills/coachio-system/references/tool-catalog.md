@@ -146,5 +146,12 @@ Grant tracking / audit:
 - `preview_course_email_template(course_id, email_type)` — sample render, no send.
 - `test_send_course_email(course_id, email_type, to_email, confirm)` ⚠ — real send.
 
+## Course students & enrollment
+- `list_course_students(course_id, page?, page_size?, email?)` — read-only; current students (buyers) with learning progress; `email` is a substring filter.
+- `enroll_course_students(course_id, students, confirm)` ⚠ — bulk-enroll by email; `students` = list of `{email, name?, phone?}`. Creates a learner account when missing (sends credentials), grants active access (idempotent), sends onboarding email. Returns a summary + per-email results (`created_account` | `enrolled` | `already_enrolled` | `failed`).
+- `preview_course_lead_audience(course_id, funnel_ids, statuses)` — read-only; preview leads across multiple funnels + statuses (`subscribed`|`lead`|`purchased`) that would be enrolled — each with email, funnel, `has_account`, `already_enrolled`. Creates/sends nothing.
+- `enroll_course_leads(course_id, funnel_ids, statuses, confirm)` ⚠ — enroll matching leads (skips already-enrolled) from the given funnels/statuses; same account-resolution + onboarding-email behavior as `enroll_course_students`. Capped at 500. Preview first with `preview_course_lead_audience`.
+- `unenroll_course_student(course_id, user_id, confirm)` ⚠ — soft-drop a student from the course (keeps history, sends no email); idempotent, returns state `dropped` | `already_dropped` | `not_enrolled`.
+
 > Exact tool names may vary slightly; list the live tools with the client's tool browser
 > if a name does not resolve.

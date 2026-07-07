@@ -14,7 +14,8 @@ description: >-
   campaign to subscribers", "show me this funnel's leads/analytics", "preview before
   publishing", "create a course", "add a lesson/section to this course", "build the
   course landing page", "is this course ready to publish", "publish this course",
-  "edit the course email template".
+  "edit the course email template", "add a student to course", "enroll leads into
+  course", "remove a student from course".
 ---
 
 # Funnel Config via MCP
@@ -33,7 +34,9 @@ events** (events, prizes, participants, live spin/winners, registration token), 
 **read-only** leads / analytics / orders, unpublished landing preview, and **course
 authoring**: courses (CRUD) + categories, curriculum (sections + lessons), publish
 readiness + publish + status, course landing page (per-section editing + reorder + SEO +
-status + AI edit), and course email templates (list/update/preview/test-send).
+status + AI edit), course email templates (list/update/preview/test-send), and **student
+enrollment** (list current students, bulk-enroll by email, enroll leads from funnels,
+soft-drop a student).
 
 It does **NOT** handle: payment processing (beyond course price fields), quiz authoring,
 user accounts, infrastructure, or anything outside the funnel/course admin domain. If
@@ -71,7 +74,8 @@ Never print, log, or echo the secret value back to the operator or into files.
 4. **Publish/send only on explicit approval.** Destructive or real-effect tools
    (`set_funnel_status`, `delete_*`, `rotate_capture_token`, `send_broadcast`,
    `test_send_email`, `publish_course`, `set_course_status`, `set_course_landing_status`,
-   `test_send_course_email`) require `confirm=true`. NEVER pass `confirm=true` until the
+   `test_send_course_email`, `enroll_course_students`, `enroll_course_leads`,
+   `unenroll_course_student`) require `confirm=true`. NEVER pass `confirm=true` until the
    operator has clearly approved that specific action; describe the effect first and wait.
 
 ## Common tasks (use MCP Prompts when available)
