@@ -75,9 +75,76 @@ Read tools and content-config tools run freely. Output mirrors the admin REST sc
 - `list_lucky_winners(event_id)` — winners incl. id, phone, email (derived from participant; empty when not collected).
 - `discard_lucky_winner(event_id, winner_id, confirm)` ⚠ — discard a winner (e.g. absent), removes the participant and frees the prize to redraw.
 
+## Gifts
+Gift packages (perks + external links) delivered two ways: **automations** (auto-grant on a
+funnel trigger) and **campaigns** (one-off send to a targeted audience). A grant ledger makes
+every delivery once-per-recipient; resends re-send the email only, never re-grant perks.
+
+Packages + email composing:
+- `list_gifts(include_archived?)`, `get_gift(gift_id)`.
+- `create_gift(name, description?, internal_config?, external_items?)` — `internal_config` = `{unlock_agent_skills, studio_credits, enable_api_access}`; `external_items` = list of `{label, url, description?}`. A gift needs ≥1 internal perk or 1 external item.
+- `update_gift(gift_id, …, is_archived?)`, `archive_gift(gift_id, confirm)` ⚠ — soft-archive (ledger kept); restore via `update_gift(is_archived=false)`.
+- `preview_gift_email(gift_ids, email_subject?, email_html?)` / `test_send_gift_email(to_email, gift_ids, …)` — delivery email; tokens `{{recipient_name}}`, `{{agent_skills_url}}`, `{{studio_url}}` (URL only — wrap each in your own `<a>` button; empty unless the gift grants that perk).
+- `preview_gift_account_email(email_subject?, email_html?)` / `test_send_gift_account_email(to_email, …)` — new-account login email; tokens `{{recipient_name}}`, `{{login_email}}`, `{{password}}`, `{{login_url}}` (URL only — wrap in your own `<a>` button). Blank → default template.
+
+Automations (mechanism 1):
+- `list_gift_automations()`, `get_gift_automation(automation_id)`.
+- `create_gift_automation(trigger_status, gift_ids?, funnel_id?, is_active?, max_total_grants?, email_*?, account_email_*?)` — `funnel_id` null = all funnels. ⚠ non-`purchased` triggers grant paid perks to unpaid leads.
+- `update_gift_automation(automation_id, …)`, `delete_gift_automation(automation_id, confirm)` ⚠.
+
+Campaigns (mechanism 2) — lifecycle create → preview → confirm → send:
+- `list_gift_campaigns()`, `get_gift_campaign(campaign_id)`.
+- `create_gift_campaign(name, gift_ids?, email_*?, account_email_*?, audience_config?, scheduled_at?)`, `update_gift_campaign(campaign_id, …)` (draft only).
+- `preview_gift_audience(campaign_id? | gift_ids? + audience_config?)` — recipient breakdown `{matched, already_granted, will_receive, sample}`.
+- `confirm_gift_campaign(campaign_id)` — freeze recipient snapshot into send jobs.
+- `send_gift_campaign(campaign_id, scheduled_at?)` — send now or schedule (ISO with +07:00).
+- `cancel_gift_campaign(campaign_id)`, `retry_gift_campaign(campaign_id)`, `gift_campaign_stats(campaign_id, failed_page?, failed_size?)`.
+- `delete_gift_campaign(campaign_id, confirm)` ⚠.
+
+Grant tracking / audit:
+- `list_gift_grants(page?, size?, gift_id?, funnel_id?, source_type?, email_status?, email?, content?, new_account_created?, date_from?, date_to?)`, `gift_grant_stats(…same filters…)`, `gift_grant_detail(grant_id)`.
+- `resend_gift_grant(grant_id)`, `bulk_retry_gift_grants(…filters…)` — re-send failed emails only.
+
 ## Preview
 - `get_landing_preview(funnel_id)` — returns the admin `preview_url` (open in browser) and a
   draft snapshot; use before publishing. Does not change publish status.
+
+## Courses
+- `list_courses(status?, category_id?)`, `get_course(course_id)`.
+- `create_course(title, level, slug?, category_id?, thumbnail_url?, description?, short_description?, …, sale_price?, discount_percent?, product_id?, variables?, variables_meta?, success_config?)` — starts `draft`.
+- `update_course(course_id, …subset…)` — does NOT change status; use `publish_course`/`set_course_status`.
+- `delete_course(course_id, confirm)` ⚠ — permanent.
+
+## Course categories
+- `list_course_categories()`.
+- `create_course_category(name, slug?, description?, parent_id?)`, `update_course_category(category_id, …)`.
+- `delete_course_category(category_id, confirm)` ⚠ — fails if any course still uses it.
+
+## Course publish + status
+- `get_course_publish_readiness(course_id)` — checklist (course detail, curriculum, landing, upgrade page, payment) + `can_publish` + `draft_lesson_count` (lessons publishing will auto-promote).
+- `publish_course(course_id, confirm)` ⚠ — gated by readiness; raises a tool error describing what's missing if not ready. Cascades to landing/upgrade pages + draft lessons.
+- `set_course_status(course_id, status_value, confirm)` ⚠ — `draft`/`archived` only (use `publish_course` to publish); cascades landing/upgrade back to draft.
+
+## Course curriculum
+- `get_curriculum(course_id)` — sections + lessons + materials.
+- `create_course_section(course_id, title, description?, sort_order?)`, `update_course_section(section_id, …)`, `delete_course_section(section_id, confirm)` ⚠.
+- `create_lesson(section_id, title, lesson_type, lesson_status?, youtube_url?, pdf_url?, banner_url?, …)` — type: `text_lesson`|`pdf_lesson`|`video_lesson`; media via URL only, no file-upload tool.
+- `update_lesson(lesson_id, …subset…)`, `delete_lesson(lesson_id, confirm)` ⚠.
+
+## Course landing (per-section convenience over a whole-list upsert)
+- `get_course_landing(course_id)` — sections + SEO + outline; errors if not created yet.
+- `add_course_landing_section(course_id, section_type?, html?, name?, theme_mode?, anchor?, …)` — `section_type`: `hero` (one, kept first), `course_outline` (one), `custom`; auto-creates the landing on first call.
+- `update_course_landing_section(course_id, section_id, …subset…)`, `delete_course_landing_section(course_id, section_id, confirm)` ⚠ — hero cannot be deleted.
+- `reorder_course_landing_sections(course_id, section_ids)` — hero always kept first.
+- `update_course_landing_seo(course_id, seo_title?, seo_description?, og_image_url?, canonical_url?, …)`.
+- `set_course_landing_status(course_id, status_value, confirm)` ⚠ — `published` requires hero content.
+- `ai_edit_course_landing_section(course_id, section_id, instruction)` — returns a suggestion only, does not save.
+
+## Course email templates
+- `list_course_email_templates(course_id)` — `verify`/`receipt` (custom or default) + variable tokens.
+- `update_course_email_template(course_id, email_type, subject, html, enabled?)`.
+- `preview_course_email_template(course_id, email_type)` — sample render, no send.
+- `test_send_course_email(course_id, email_type, to_email, confirm)` ⚠ — real send.
 
 > Exact tool names may vary slightly; list the live tools with the client's tool browser
 > if a name does not resolve.
