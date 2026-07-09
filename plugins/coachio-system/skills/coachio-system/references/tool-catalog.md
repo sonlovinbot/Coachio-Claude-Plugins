@@ -4,9 +4,9 @@ Tools grouped by concern. ⚠ = destructive / real-effect → requires `confirm=
 Read tools and content-config tools run freely. Output mirrors the admin REST schemas.
 
 ## Products
-- `list_products(type?, status?)` — list with totals (type: course|service|digital|other|agents_skill; status: draft|active|archived).
+- `list_products(type?, status?)` — list with totals (type: course|service|digital|other|agents_skill|skills_pack; status: draft|active|archived).
 - `get_product(product_id)` — full product incl. linked courses.
-- `create_product(name, slug, type, base_price?, status?, description?, thumbnail_url?, course_ids?)` — slug kebab-case + unique; `course_ids` not allowed for `agents_skill`. A funnel needs an existing product, so create one here first.
+- `create_product(name, slug, type, base_price?, status?, description?, thumbnail_url?, course_ids?)` — slug kebab-case + unique; type includes `agents_skill` + `skills_pack`; `course_ids` not allowed for `agents_skill`/`skills_pack`. A funnel needs an existing product, so create one here first (for a `skills_pack`, connect a repo with `connect_skills_repo` after).
 - `update_product(product_id, …)` — price/name changes refresh published funnels' landing cache.
 - `delete_product(product_id, confirm)` ⚠ — permanent; may affect funnels referencing it.
 
@@ -168,6 +168,25 @@ Event = a workshop that fan-outs reminder messages to N Zalo groups. Each event 
 - `cancel_zalo_reminder_slots(job_ids, confirm)` ⚠ — cancel pending slots (removes their n8n schedule); returns `{cancelled, skipped}`.
 - `cancel_zalo_event(event_id, confirm)` ⚠ — cancel the event + cascade-cancel its pending slots.
 - `delete_zalo_event(event_id, confirm)` ⚠ — hard-delete event + slots; rejected if it still has pending slots (cancel first).
+
+## Skills-pack funnels
+A `skills_pack` product sells access to the skills in one connected **private GitHub repo**. Admin connects the repo (read-only PAT, stored encrypted, never echoed) and **syncs** a manifest; a purchase records a per-funnel grant unlocking the WHOLE repo. Buyers browse/download individual skills from the landing via a headless delivery API the admin wires into custom HTML. A "skill" = a repo folder containing a `SKILL.md` (content) or a `.zip` (zip); files > 100 MB are flagged unservable.
+- `get_skills_config(funnel_id)` — read-only; connection (provider, repo, ref, root_path, connected, synced sha/time, skills_count). Never returns the token.
+- `list_funnel_skills(funnel_id)` — read-only; synced skills (id, skill_key, title, kind `zip`|`content`, is_visible, is_servable, sort), incl. hidden/unservable.
+- `connect_skills_repo(funnel_id, repo, token, ref?, root_path?, provider?, confirm)` ⚠ — validate reachability + store the encrypted PAT. Real effect (stores a secret) → `confirm=true`.
+- `sync_skills(funnel_id)` — walk the repo tree, upsert skills (preserve admin overrides, drop stale), record the commit sha. Returns `{total, zip, content, unservable, removed, truncated}`.
+- `edit_funnel_skill(funnel_id, skill_id, title?, description?, is_visible?, sort?)` — curate a synced skill (no repo change).
+
+**Landing delivery API** (buyer-facing; the admin's landing custom-HTML calls these with the buyer `access_token` from localStorage as `Authorization: Bearer`). Teaser list is public; tree/file/download require a grant:
+`GET /public/funnels/{slug}/skills` (list + `locked`), `.../skills/access` (`{unlocked}`), `.../skills/{id}/tree`, `.../skills/{id}/file?path=`, `.../skills/{id}/download` (→ `{url}` short-lived signed URL).
+```js
+const t = localStorage.getItem('access_token');
+const h = { Authorization: `Bearer ${t}` };
+const { skills } = await (await fetch(`/api/v1/public/funnels/${slug}/skills`, { headers: h })).json();
+// download a skill: follow the returned signed URL
+const { url } = await (await fetch(`/api/v1/public/funnels/${slug}/skills/${id}/download`, { headers: h })).json();
+window.location = url;
+```
 
 > Exact tool names may vary slightly; list the live tools with the client's tool browser
 > if a name does not resolve.

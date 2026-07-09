@@ -41,7 +41,9 @@ enrollment** (list current students, bulk-enroll by email, enroll leads from fun
 soft-drop a student). It also handles **Zalo group reminders**: workshop events that
 fan-out reminder messages to Zalo groups (create event + auto default slots, edit slot
 content, add custom slots, register/cancel real n8n-scheduled sends, cancel/delete events,
-read groups + connection status).
+read groups + connection status). It also handles **skills-pack funnels**: connect a
+private GitHub repo (encrypted PAT) to a `skills_pack` product, sync its skill manifest,
+and curate skills — buyers then unlock/download the skills from the landing.
 
 It does **NOT** handle: payment processing (beyond course price fields), quiz authoring,
 user accounts, infrastructure, or anything outside the funnel/course admin domain. If
