@@ -6,7 +6,7 @@ Read tools and content-config tools run freely. Output mirrors the admin REST sc
 ## Products
 - `list_products(type?, status?)` — list with totals (type: course|service|digital|other|agents_skill|skills_pack; status: draft|active|archived).
 - `get_product(product_id)` — full product incl. linked courses.
-- `create_product(name, slug, type, base_price?, status?, description?, thumbnail_url?, course_ids?)` — slug kebab-case + unique; type includes `agents_skill` + `skills_pack`; `course_ids` not allowed for `agents_skill`/`skills_pack`. A funnel needs an existing product, so create one here first (for a `skills_pack`, connect a repo with `connect_skills_repo` after).
+- `create_product(name, slug, type, base_price?, status?, description?, thumbnail_url?, course_ids?)` — slug kebab-case + unique; type includes `agents_skill` + `skills_pack`; `course_ids` not allowed for `agents_skill`/`skills_pack`. A funnel needs an existing product, so create one here first (for a `skills_pack`, create SkillPack(s) in the catalog and attach with `attach_skill_pack_to_funnel` after).
 - `update_product(product_id, …)` — price/name changes refresh published funnels' landing cache.
 - `delete_product(product_id, confirm)` ⚠ — permanent; may affect funnels referencing it.
 
@@ -169,24 +169,41 @@ Event = a workshop that fan-outs reminder messages to N Zalo groups. Each event 
 - `cancel_zalo_event(event_id, confirm)` ⚠ — cancel the event + cascade-cancel its pending slots.
 - `delete_zalo_event(event_id, confirm)` ⚠ — hard-delete event + slots; rejected if it still has pending slots (cancel first).
 
-## Skills-pack funnels
-A `skills_pack` product sells access to the skills in one connected **private GitHub repo**. Admin connects the repo (read-only PAT, stored encrypted, never echoed) and **syncs** a manifest; a purchase records a per-funnel grant unlocking the WHOLE repo. Buyers browse/download individual skills from the landing via a headless delivery API the admin wires into custom HTML. A "skill" = a repo folder containing a `SKILL.md` (content) or a `.zip` (zip); files > 100 MB are flagged unservable.
-- `get_skills_config(funnel_id)` — read-only; connection (provider, repo, ref, root_path, connected, synced sha/time, skills_count). Never returns the token.
-- `list_funnel_skills(funnel_id)` — read-only; synced skills (id, skill_key, title, kind `zip`|`content`, is_visible, is_servable, sort), incl. hidden/unservable.
-- `connect_skills_repo(funnel_id, repo, token, ref?, root_path?, provider?, confirm)` ⚠ — validate reachability + store the encrypted PAT. Real effect (stores a secret) → `confirm=true`.
-- `sync_skills(funnel_id)` — walk the repo tree, upsert skills (preserve admin overrides, drop stale), record the commit sha. Returns `{total, zip, content, unservable, removed, truncated}`.
-- `edit_funnel_skill(funnel_id, skill_id, title?, description?, is_visible?, sort?)` — curate a synced skill (no repo change).
+## Skill packs (standalone catalog + funnel attach)
+A `skills_pack` product sells access to one or more **SkillPacks** — a standalone,
+reusable catalog entity (title/description/banner + one connected **private GitHub
+repo**), independent of any funnel. The same pack can attach to many funnels, and one
+funnel can sell many packs (M:N). Admin connects a pack's repo (read-only PAT, stored
+encrypted, never echoed) and **syncs** an item manifest; a purchase records a
+`SkillPackGrant` per attached pack, unlocking the WHOLE pack. Buyers browse/download
+items from their authenticated learner dashboard — NOT the funnel landing. An "item" =
+a repo folder containing a `SKILL.md` (content) or a `.zip` (zip); files > 100 MB are
+flagged unservable.
 
-**Landing delivery API** (buyer-facing; the admin's landing custom-HTML calls these with the buyer `access_token` from localStorage as `Authorization: Bearer`). Teaser list is public; tree/file/download require a grant:
-`GET /public/funnels/{slug}/skills` (list + `locked`), `.../skills/access` (`{unlocked}`), `.../skills/{id}/tree`, `.../skills/{id}/file?path=`, `.../skills/{id}/download` (→ `{url}` short-lived signed URL).
-```js
-const t = localStorage.getItem('access_token');
-const h = { Authorization: `Bearer ${t}` };
-const { skills } = await (await fetch(`/api/v1/public/funnels/${slug}/skills`, { headers: h })).json();
-// download a skill: follow the returned signed URL
-const { url } = await (await fetch(`/api/v1/public/funnels/${slug}/skills/${id}/download`, { headers: h })).json();
-window.location = url;
-```
+**Catalog** (independent of any funnel):
+- `list_skill_packs(status?)` — read-only; catalog packs newest-first.
+- `get_skill_pack(skill_pack_id)` — read-only; metadata + non-secret repo connection (provider, repo, ref, root_path, connected, synced sha/time, items_count). Never returns the token.
+- `create_skill_pack(title, description?, banner_url?, status?)` — creates an empty pack, not attached to any funnel yet.
+- `update_skill_pack(skill_pack_id, title?, description?, banner_url?, status?)`.
+- `delete_skill_pack(skill_pack_id, confirm)` ⚠ — blocked (409) if any buyer already owns it (has a grant) or it's still attached to a funnel; detach first.
+- `connect_skill_pack_repo(skill_pack_id, repo, token, ref?, root_path?, provider?, confirm)` ⚠ — validate reachability + store the encrypted PAT. Real effect (stores a secret) → `confirm=true`.
+- `sync_skill_pack(skill_pack_id)` — walk the repo tree, upsert items (preserve admin overrides, drop stale), record the commit sha. Returns `{total, zip, content, unservable, removed, truncated}`.
+- `list_skill_pack_items(skill_pack_id)` — read-only; synced items (id, skill_key, title, kind `zip`|`content`, is_visible, is_servable, sort), incl. hidden/unservable.
+- `edit_skill_pack_item(skill_pack_id, item_id, title?, description?, is_visible?, sort?)` — curate a synced item (no repo change).
+
+**Funnel attach** (`skills_pack` funnels only — 400 otherwise):
+- `attach_skill_pack_to_funnel(funnel_id, skill_pack_id)` — adds at the end of the current order; no-op if already attached.
+- `detach_skill_pack_from_funnel(funnel_id, skill_pack_id)` — no-op if not attached.
+
+**Delivery** (buyer-facing; replaces v1's landing + localStorage flow). Buyers see and
+open owned packs from their authenticated learner dashboard, gated by session (401) +
+a per-pack grant (403) on every call:
+`GET /me/skill-packs` (owned packs), `.../skill-packs/{packId}/items`,
+`.../items/{itemId}/tree`, `.../items/{itemId}/file?path=`, `.../items/{itemId}/download`
+(→ `{url}` short-lived signed URL). The sales landing may additionally show a public,
+unauthenticated teaser of the attached packs (no items, no repo identity):
+`GET /public/funnels/{slug}/skill-packs` — attached + `active` packs only
+(id/title/description/banner_url).
 
 > Exact tool names may vary slightly; list the live tools with the client's tool browser
 > if a name does not resolve.
