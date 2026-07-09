@@ -15,7 +15,9 @@ description: >-
   publishing", "create a course", "add a lesson/section to this course", "build the
   course landing page", "is this course ready to publish", "publish this course",
   "edit the course email template", "add a student to course", "enroll leads into
-  course", "remove a student from course".
+  course", "remove a student from course" — or Zalo group reminders — "create a Zalo
+  reminder for the workshop", "schedule reminder messages to the Zalo group", "list Zalo
+  reminder events", "register/cancel the reminder slots".
 ---
 
 # Funnel Config via MCP
@@ -36,7 +38,10 @@ authoring**: courses (CRUD) + categories, curriculum (sections + lessons), publi
 readiness + publish + status, course landing page (per-section editing + reorder + SEO +
 status + AI edit), course email templates (list/update/preview/test-send), and **student
 enrollment** (list current students, bulk-enroll by email, enroll leads from funnels,
-soft-drop a student).
+soft-drop a student). It also handles **Zalo group reminders**: workshop events that
+fan-out reminder messages to Zalo groups (create event + auto default slots, edit slot
+content, add custom slots, register/cancel real n8n-scheduled sends, cancel/delete events,
+read groups + connection status).
 
 It does **NOT** handle: payment processing (beyond course price fields), quiz authoring,
 user accounts, infrastructure, or anything outside the funnel/course admin domain. If
@@ -75,7 +80,8 @@ Never print, log, or echo the secret value back to the operator or into files.
    (`set_funnel_status`, `delete_*`, `rotate_capture_token`, `send_broadcast`,
    `test_send_email`, `publish_course`, `set_course_status`, `set_course_landing_status`,
    `test_send_course_email`, `enroll_course_students`, `enroll_course_leads`,
-   `unenroll_course_student`) require `confirm=true`. NEVER pass `confirm=true` until the
+   `unenroll_course_student`, `register_zalo_reminder_slots`, `cancel_zalo_reminder_slots`,
+   `cancel_zalo_event`, `delete_zalo_event`) require `confirm=true`. NEVER pass `confirm=true` until the
    operator has clearly approved that specific action; describe the effect first and wait.
 
 ## Common tasks (use MCP Prompts when available)

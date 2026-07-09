@@ -153,5 +153,21 @@ Grant tracking / audit:
 - `enroll_course_leads(course_id, funnel_ids, statuses, confirm)` ⚠ — enroll matching leads (skips already-enrolled) from the given funnels/statuses; same account-resolution + onboarding-email behavior as `enroll_course_students`. Capped at 500. Preview first with `preview_course_lead_audience`.
 - `unenroll_course_student(course_id, user_id, confirm)` ⚠ — soft-drop a student from the course (keeps history, sends no email); idempotent, returns state `dropped` | `already_dropped` | `not_enrolled`.
 
+## Zalo reminders
+Event = a workshop that fan-outs reminder messages to N Zalo groups. Each event has reminder **slots** (jobs): 8 preset `default` slots auto-created at offsets (`T_MINUS_1D`, `T_MINUS_12H`, `T_MINUS_3H`, `T_MINUS_1H`, `T_MINUS_15M`, `T_MINUS_5M`, `AT_TIME`, `T_PLUS_5M`) plus ad-hoc `CUSTOM` slots. A slot stays `draft` (no send) until **registered** with n8n → `pending` → `sent`. All times are **VN local** (naive, e.g. `2026-07-15T20:00:00`).
+- `zalo_connection_status()` — read-only; session status (connected|disconnected|unknown), zalo_name, heartbeat.
+- `list_zalo_groups()` — read-only; cached groups (group_id, name, member count).
+- `refresh_zalo_groups()` — force-sync group cache from the live Zalo session (n8n); rate-limited to once/30s.
+- `list_zalo_events(status?, q?)` — read-only; events newest-first with `sent_count`/`pending_count`; filter by status (`draft`|`scheduled`|`cancelled`) or name `q`.
+- `get_zalo_event(event_id)` — read-only; event + all its slots.
+- `create_zalo_event(name, event_at_vn, zalo_group_ids, group_names?, slots?)` — creates the event + auto-spawns 8 default draft slots (template messages; nothing sends yet). Optional `slots` items `{slot_key, message, media_urls?, slot_name?, send_at_vn?}`: a default `slot_key` OVERRIDES that auto-slot's content; `slot_key='CUSTOM'` ADDS an ad-hoc slot (needs `send_at_vn` + `slot_name`). Returns `{event, jobs}`.
+- `update_zalo_event(event_id, name?, event_at_vn?, zalo_group_ids?, group_names?)` — partial event edit.
+- `add_zalo_reminder_slots(event_id, slots)` — add draft slots (same `slots` shape) to an existing event.
+- `update_zalo_reminder_slot(job_id, message?, media_urls?, slot_name?, send_at_vn?)` — edit one slot; service enforces slot-kind × status rules (default slots reject reschedule; editing a pending slot re-registers on n8n).
+- `register_zalo_reminder_slots(job_ids, confirm)` ⚠ — register draft slots with n8n for REAL scheduled sending; promotes event draft→scheduled. Partial: returns `{registered, skipped, failed}`.
+- `cancel_zalo_reminder_slots(job_ids, confirm)` ⚠ — cancel pending slots (removes their n8n schedule); returns `{cancelled, skipped}`.
+- `cancel_zalo_event(event_id, confirm)` ⚠ — cancel the event + cascade-cancel its pending slots.
+- `delete_zalo_event(event_id, confirm)` ⚠ — hard-delete event + slots; rejected if it still has pending slots (cancel first).
+
 > Exact tool names may vary slightly; list the live tools with the client's tool browser
 > if a name does not resolve.
