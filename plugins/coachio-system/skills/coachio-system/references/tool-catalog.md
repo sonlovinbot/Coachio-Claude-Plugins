@@ -21,8 +21,9 @@ Read tools and content-config tools run freely. Output mirrors the admin REST sc
 
 ## Landing & SEO
 - `get_landing(funnel_id)`, `update_landing_seo(funnel_id, …)`.
-- `list_sections(funnel_id)`, `create_section(funnel_id, …)`, `update_section(section_id, …)`, `reorder_sections(funnel_id, ordered_ids)`.
+- `list_sections(funnel_id)` (slim directory — no html), `get_section(funnel_id, section_id)` (one section WITH html), `create_section(funnel_id, …)`, `update_section(section_id, …)`, `reorder_sections(funnel_id, ordered_ids)`.
 - `delete_section(section_id, confirm)` ⚠.
+- Section writes + `list_sections` return a slim receipt (`html_length`, not the html body) to stay under the remote-MCP connector's response-size limit; use `get_section` to read a section's current html before editing. `update_section` is a true partial patch — pass only the fields you change.
 - Anchors must be unique within a landing; all writes refresh the landing cache.
 
 ## Variables
@@ -82,9 +83,9 @@ every delivery once-per-recipient; resends re-send the email only, never re-gran
 
 Packages + email composing:
 - `list_gifts(include_archived?)`, `get_gift(gift_id)`.
-- `create_gift(name, description?, internal_config?, external_items?)` — `internal_config` = `{unlock_agent_skills, studio_credits, enable_api_access}`; `external_items` = list of `{label, url, description?}`. A gift needs ≥1 internal perk or 1 external item.
+- `create_gift(name, description?, internal_config?, external_items?)` — `internal_config` = `{unlock_agent_skills, studio_credits, enable_api_access, course_ids}` (`course_ids` = list of course ids to enroll the recipient into as an active student; a course-only gift still creates their account); `external_items` = list of `{label, url, description?}`. A gift needs ≥1 internal perk or 1 external item.
 - `update_gift(gift_id, …, is_archived?)`, `archive_gift(gift_id, confirm)` ⚠ — soft-archive (ledger kept); restore via `update_gift(is_archived=false)`.
-- `preview_gift_email(gift_ids, email_subject?, email_html?)` / `test_send_gift_email(to_email, gift_ids, …)` — delivery email; tokens `{{recipient_name}}`, `{{agent_skills_url}}`, `{{studio_url}}` (URL only — wrap each in your own `<a>` button; empty unless the gift grants that perk).
+- `preview_gift_email(gift_ids, email_subject?, email_html?)` / `test_send_gift_email(to_email, gift_ids, …)` — delivery email; tokens `{{recipient_name}}`, `{{agent_skills_url}}`, `{{studio_url}}`, `{{access_token}}` (raw login token — append `?token=` to any route to auto-login, e.g. a gifted course `.../courses-page/<slug>?token={{access_token}}`). The URL tokens are URL only — wrap each in your own `<a>` button; each is empty unless the gift grants that perk / creates an account.
 - `preview_gift_account_email(email_subject?, email_html?)` / `test_send_gift_account_email(to_email, …)` — new-account login email; tokens `{{recipient_name}}`, `{{login_email}}`, `{{password}}`, `{{login_url}}` (URL only — wrap in your own `<a>` button). Blank → default template.
 
 Automations (mechanism 1):
@@ -121,30 +122,15 @@ Grant tracking / audit:
 - `delete_course_category(category_id, confirm)` ⚠ — fails if any course still uses it.
 
 ## Course publish + status
-- `get_course_publish_readiness(course_id)` — checklist (course detail, curriculum, landing, upgrade page, payment) + `can_publish` + `draft_lesson_count` (lessons publishing will auto-promote).
-- `publish_course(course_id, confirm)` ⚠ — gated by readiness; raises a tool error describing what's missing if not ready. Cascades to landing/upgrade pages + draft lessons.
-- `set_course_status(course_id, status_value, confirm)` ⚠ — `draft`/`archived` only (use `publish_course` to publish); cascades landing/upgrade back to draft.
+- `get_course_publish_readiness(course_id)` — checklist (course detail, curriculum, payment) + `can_publish` + `draft_lesson_count` (lessons publishing will auto-promote).
+- `publish_course(course_id, confirm)` ⚠ — gated by readiness; raises a tool error describing what's missing if not ready. Cascades to draft lessons.
+- `set_course_status(course_id, status_value, confirm)` ⚠ — `draft`/`archived` only (use `publish_course` to publish).
 
 ## Course curriculum
 - `get_curriculum(course_id)` — sections + lessons + materials.
 - `create_course_section(course_id, title, description?, sort_order?)`, `update_course_section(section_id, …)`, `delete_course_section(section_id, confirm)` ⚠.
 - `create_lesson(section_id, title, lesson_type, lesson_status?, youtube_url?, pdf_url?, banner_url?, …)` — type: `text_lesson`|`pdf_lesson`|`video_lesson`; media via URL only, no file-upload tool.
 - `update_lesson(lesson_id, …subset…)`, `delete_lesson(lesson_id, confirm)` ⚠.
-
-## Course landing (per-section convenience over a whole-list upsert)
-- `get_course_landing(course_id)` — sections + SEO + outline; errors if not created yet.
-- `add_course_landing_section(course_id, section_type?, html?, name?, theme_mode?, anchor?, …)` — `section_type`: `hero` (one, kept first), `course_outline` (one), `custom`; auto-creates the landing on first call.
-- `update_course_landing_section(course_id, section_id, …subset…)`, `delete_course_landing_section(course_id, section_id, confirm)` ⚠ — hero cannot be deleted.
-- `reorder_course_landing_sections(course_id, section_ids)` — hero always kept first.
-- `update_course_landing_seo(course_id, seo_title?, seo_description?, og_image_url?, canonical_url?, …)`.
-- `set_course_landing_status(course_id, status_value, confirm)` ⚠ — `published` requires hero content.
-- `ai_edit_course_landing_section(course_id, section_id, instruction)` — returns a suggestion only, does not save.
-
-## Course email templates
-- `list_course_email_templates(course_id)` — `verify`/`receipt` (custom or default) + variable tokens.
-- `update_course_email_template(course_id, email_type, subject, html, enabled?)`.
-- `preview_course_email_template(course_id, email_type)` — sample render, no send.
-- `test_send_course_email(course_id, email_type, to_email, confirm)` ⚠ — real send.
 
 ## Course students & enrollment
 - `list_course_students(course_id, page?, page_size?, email?)` — read-only; current students (buyers) with learning progress; `email` is a substring filter.
