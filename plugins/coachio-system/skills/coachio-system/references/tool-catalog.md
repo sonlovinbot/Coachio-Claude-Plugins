@@ -131,6 +131,8 @@ Grant tracking / audit:
 - `create_course_section(course_id, title, description?, sort_order?)`, `update_course_section(section_id, …)`, `delete_course_section(section_id, confirm)` ⚠.
 - `create_lesson(section_id, title, lesson_type, lesson_status?, youtube_url?, pdf_url?, banner_url?, …)` — type: `text_lesson`|`pdf_lesson`|`video_lesson`; media via URL only, no file-upload tool.
 - `update_lesson(lesson_id, …subset…)`, `delete_lesson(lesson_id, confirm)` ⚠.
+- Lesson visibility flags (independent): `is_preview` = anyone can view the lesson content, anonymous visitors included — use it for landing-page previews; `is_free` = logged-in users who have not bought the course can open it (NOT public). `get_curriculum` returns both per lesson.
+- Showing preview lessons on a course funnel landing (custom HTML): `GET /api/v1/public/courses/{slug}/outline` for the list, then `GET /api/v1/public/courses/{slug}/lessons/{lesson_id}` for the content of lessons with `is_preview=true` (404 for all others). Never hard-code lesson content into the landing.
 
 ## Course students & enrollment
 - `list_course_students(course_id, page?, page_size?, email?)` — read-only; current students (buyers) with learning progress; `email` is a substring filter.

@@ -100,6 +100,10 @@ The server also exposes workflow **prompts** — prefer them for multi-step jobs
   get_course_publish_readiness → (on approval) publish_course(confirm=true). Publish is
   gated by readiness — it raises an error describing what's missing (e.g. no lessons)
   instead of publishing an incomplete course.
+- **Preview lessons on a course landing:** flag lessons `is_preview=true` via `update_lesson` (public to
+  everyone; `is_free` is only for logged-in users). In the landing's custom HTML, list lessons from
+  `GET /api/v1/public/courses/{slug}/outline` and load a preview lesson's content on demand from
+  `GET /api/v1/public/courses/{slug}/lessons/{lesson_id}`.
 - **Read-only reporting:** `get_funnel_analytics`, `funnel_orders_summary`,
   `list_funnel_orders`, `list_leads` (never mutate during a report).
 
